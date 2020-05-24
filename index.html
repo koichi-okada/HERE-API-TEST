@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title> STANDY: look! the estimated crowdedness during the Olympics appear in sky! </title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- import the webpage's stylesheet -->
+    <link rel="stylesheet" href="/style.css">
+    
+    <!-- import the webpage's javascript file -->
+    <script src="/script.js" defer></script>
+    <script src="https://aframe.io/releases/0.8.2/aframe.min.js"></script>
+    <script src="//code.jquery.com/jquery-1.11.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore.js" type="text/javascript"></script>
+    <script src="https://unpkg.com/aframe-animation-component@^4.1.2/dist/aframe-animation-component.min.js"></script>
+    <script src="https://algorithmia.com/v1/clients/js/algorithmia-0.2.1.js" type="text/javascript"></script>
+    <script>
+          AFRAME.registerComponent('alpha-test', {
+            dependencies: ['material'],
+            init: function () {
+              var material = this.el.getObject3D('mesh').material;
+              material.alphaTest = 0.1;
+              material.needsUpdate = true;
+            }});
+      /* AFRAME.registerComponent('audiohandler', {
+        init:function() {
+          let playing = false;
+          let audio = this.el.components.sound;
+          this.el.setAttribute("src", "https://cdn.glitch.com/68a5793f-c971-43fa-a486-0004fc80764e%2Fken_ishii_lc_circuit_light.mp3?1532091989263");
+          var btn = document.getElementById("btn");
+          btn.addEventListener('mousedown', () => {
+            if(!playing) {
+              audio.playSound();
+              btn.innerHTML = '<img id="volume" src="https://cdn.glitch.com/e91484c9-95a2-40b3-a5b6-acc2db87a4ef%2Fsound_on.png?1532242974343"/>';
+            } else {
+              audio.stopSound();
+              btn.innerHTML = '<img id="volume" src="https://cdn.glitch.com/e91484c9-95a2-40b3-a5b6-acc2db87a4ef%2Fwhite_off.png?1532242974704"/>';
+            }
+            playing = !playing;
+          });}}); */
+
+          // below will be replaced by URL parameters.
+          var lat = 35.671093; //harajuku
+          var lng = 139.702845;
+          var query_word = "jingumae";
+          //
+          
+          var search_request = new XMLHttpRequest();
+          var panorama_request = new XMLHttpRequest();
+          var panorama_url;
+      
+          search_request.open('GET' 
+                       ,'https://places.ls.hereapi.com/places/v1/autosuggest?at='
+                          + lat +','+ lng +'&q='+ query_word 
+                          +'&apiKey=WQ24qH78ZHM7iFe120BQqcOYAowAhybvVPVoV3XjDlQ'
+                       ,true);
+          search_request.responseType = 'json';
+ 
+          search_request.onload = function () {
+            var search_json = this.response;
+            console.log(search_json);
+            var res_lat = search_json.results[0].position[0];
+            var res_lng = search_json.results[0].position[1];
+            console.log(res_lat,res_lng);
+            panorama_request.open('GET' 
+                        ,'https://a.mapillary.com/v3/images/?per_page=1&pano=true&closeto='
+                          + res_lng +','+ res_lat +'&radius=10000&client_id=NEhrUE4wZUcxSEpFTDIwZDNvLVAzZzowN2ZhMWViYzZkMDg3ZWJi'
+                       ,true);
+            panorama_request.responseType = 'json';
+ 
+            panorama_request.onload = function () {
+              var panorama_json = this.response;
+              console.log("panorama_json:")
+              console.log(panorama_json);
+              panorama_url = "https://images.mapillary.com/"+panorama_json.features[0].properties.key+"/thumb-2048.jpg ";
+              console.log("panorama_url:"+panorama_url);
+              
+              var input = {"image_url":　//"'"+panorama_url+"'",
+                                           "https://images.mapillary.com/MLNKOONCdJDgDEbZJDdjug/thumb-2048.jpg",
+                                         //"https://images.mapillary.com/LZjvASCLe2KQhULv6bjBVg/thumb-2048.jpg",
+                           "filter_class": "sky"      };
+              
+              //Algorithmia.client("simusHpkB9NU5CMeZmg6m/Wsmk61")
+              //  .algo("panzerstadt/ImageSegmentationwithPSPNet/0.1.0?timeout=300") // timeout is optional
+              //  .pipe(input)
+              //  .then(function(output) {
+              setTimeout(function(){
+                   //if(output.error) return console.error("error: " + output.error);
+                   //console.log(output.result);
+                   //console.log(output); 
+                   //const result_json = JSON.parse(output.result);
+                   //console.log(result_json); 
+                   var source2 = { "fixedImageUrl" : "'"+panorama_url+"'"}
+                                  //,  
+                                  //"'"+panorama_url+"'",
+                   //                "transpImageData" : 
+                   //                "'data:image/png;base64,"+result_json.filtered_image+"'"}; 
+                   //console.log(source2);
+                   var compiled_transpImage       = _.template(''
+                      +'  <a-assets> <img id="fixedImage"   src= <%= fixedImageUrl %> > </a-assets>                         '                                     
+                      +'  <a-entity  id          ="buildings_with_sky"                                                      '
+                      +'             position    ="0 0 0"                                                                    '
+                      +'             geometry    ="primitive: sphere; radius: 10000"                                         '
+                      +'             material    ="color:     #cff;                                                          ' 
+                      +'                           shader:    flat;                                                           '
+                      +'                           src:       #fixedImage;                                                    '
+                      +'                           side:      back"> </a-entity>                                              ' 
+                                                               
+                      /* +'  <img id="transpImage"   src= <%=  transpImageData %> >                                  '                                         
+                      +'  <a-image     id="buildings"                                                             '
+                      +'     position    ="0 0 0"                                                                 '
+                      +'     geometry    ="primitive: sphere; radius: 100"                                        '
+                      +'     material    ="color:     #cff;                                                       '
+                      +'                   shader:    flat;                                                       '
+                      +'                   src:       #transpImage;                                               '
+                      +'                   side:      back"                                                       '
+                      +'     transparent ="true"                                                                  '
+                      +'     alpha-test  ="0.5"> </a-image>                                                       '
+                      */);
+                    $("#scene1").append(compiled_transpImage(source2));
+                    console.log("yeah");
+                 },100000);
+                 //});
+              
+              };
+            
+            panorama_request.send();
+          };
+ 
+          search_request.send();
+      /*
+          var input = {
+           "image_url":　"https://images.mapillary.com/LZjvASCLe2KQhULv6bjBVg/thumb-2048.jpg",
+          //"image_url": "https://www.sejuku.net/blog/wp-content/uploads/2017/10/Kotono_avatar_1508956248-112x112.jpg",
+           "filter_class": "sky"
+          };
+
+          var transp_img_src ='';
+      
+          Algorithmia.client("simusHpkB9NU5CMeZmg6m/Wsmk61")
+            .algo("panzerstadt/ImageSegmentationwithPSPNet/0.1.0?timeout=300") // timeout is optional
+            .pipe(input)
+            .then(function(output) {
+          //setTimeout(function(){
+                    if(output.error) return console.error("error: " + output.error);
+                    console.log(output.result);
+                    console.log(output); 
+                    const result_json = JSON.parse(output.result);
+                    console.log(result_json); 
+                    //// document.getElementById("transpImage").src = 'data:image/png;base64,'+ result_json.filtered_image;
+                    //// above code is invalid, posssibly the timing is too late to construct a-image
+            
+                    //var source2=""
+                    var source2 = {"transpImageData" : 
+                                   "'data:image/png;base64,"+result_json.filtered_image+"'"}; 
+                    //                "shader: flat"};
+                    //              "'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHsAAAB9CAMAAAC1QOxQAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAKpUExURf////7+/v39/fz8/Pj4+Pv7+/r6+vn5+fb29vf39/T09PPz8/Hx8e7u7urq6ufn5+Xl5eLi4ujo6Ovr6+/v7/Dw8PLy8u3t7dbW1ri4uKSkpJqamo2NjXp6emxsbGhoaGZmZmJiYl9fX2BgYGNjY21tbX19fY6Ojpubm6mpqby8vNHR0ebm5vX19dvb27u7u5+fn3x8fF5eXlNTU0RERDo6Ojs7Oz4+PkJCQkVFRUlJSUpKSktLS09PT05OTlFRUVdXV2lpaXt7e56enrq6utXV1dPT06urq0hISDg4ODU1NTIyMjAwMDMzMzQ0ND8/P0FBQUNDQ01NTUBAQFtbW1xcXFlZWV1dXaCgoMLCwuTk5KGhoXR0dFVVVVJSUjExMS8vLywsLCoqKikpKTc3Ny0tLVBQUGVlZWRkZH9/f8jIyLa2tkdHRzY2NisrKycnJy4uLmdnZ4ODg6qqqt7e3lhYWDw8PCYmJigoKDk5OWFhYWtra2pqanl5edLS0uDg4KKiokZGRm5ubm9vb4mJiZOTk6enp9nZ2aysrJiYmK2trbe3t8DAwMnJycfHx3Nzcz09PaOjo+np6ezs7IeHh5SUlMbGxsXFxUxMTJCQkMvLy729vSQkJLKysiUlJZeXl1ZWVnZ2dqamplpaWlRUVHFxcbOzs+Hh4a6uriMjI3d3d3BwcICAgIKCgtTU1CIiIouLiyEhIb+/v4aGhnJyct/f3+Pj43h4eIGBgdzc3L6+viAgIKioqJWVlZ2dnd3d3YWFhZycnISEhLW1tc/Pz5GRkYqKinV1dczMzH5+fh8fH8rKypmZma+vr9fX187OzsTExM3NzY+Pj7S0tKWlpdDQ0IyMjNjY2LCwsMPDw5KSksHBwdra2rGxsYiIiJaWlrm5uR4eHgAAAOFVJ54AAADjdFJOU/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AzF4BsAAAAAlwSFlzAAAOwwAADsMBx2+oZAAAEUdJREFUaEO9m8thq8oSRZ0AOZABE6XhEIiCrJg4BE81IAZieWvtqkayr8+5vufzCsRPUq/eVdUfkP3y6zb1/v9n0wR0ir1j0zsHufq3rbj3ZTvOfZ7nlWXez+NY7tbA5S+Z2Pfl2Nf19vp601aWbNd13lOBvxMJyPdth/XaFrqnoGdXXHAs739avYrvEVzot7e34GMcoj1sbN/ufxRPUctcfg6rwPCzZC8+bGzf3v8QnBi+HyuAcnBsyE8FwudsKMf2I6H/XUNBkYVp0T8q0tLrjdXU3+d9P88D6b+pna9P242yQ2688DoZ5KbfaG3Lsty70f8enC/fdwsdJqE4ZU9or97WzXbeFv6v4gn0nlCOhty8nI+INzovbD7vqh7KfxGu6DVFRjIhllon1aME9qDnTbSfahf9y47nO4dFptzb+tArXVDrzsvdw1az/AH/Bfq0j0Kjp8h1Kj5nF/aC1yeiHXKPNP+NTTe2XuUNG0rl2sU18iM3dnvdl0GO+C72G8ZHF6Mbc98BfRyMatQpm+sCplNe103qU859z/jcZjldVB2yFNgXZT9Etg03cJR+/9ZRb79/0ybQocVq1ydaXK40j+tKljbe3efVK6fYWqR/g2+CMz4Ii1bticxhwm3E+5LcqgpGrejW1b2udKwX+pvStxHrW9z8qEF2lpoBo9pbC2ZbH7oJjs/5mL365fZ/o+sZYl26G+zSZ67wdixw1nAVzsGblWE48wpuWdeTbL8sifRTm+6t75nZS65TLEPVnvlatOfapR/NdETu9X76OGNd1oyvjS68He12bDTKu9gY3Box7emDjtUun9Ipt9spcgT85/BpokuppXZ9/HBDaWTNaH2eThgy0nClwbI99XxdClyB/1myT9OpxOCiNZLfXlcGlYGustk6RTPy+85BwutB4PnEmmzfHc0zjzfjfsyuPAu1tNbRGzmU+ozL2VmwGQ/byDORnE8ORVftyhm3NLTh9h/Cp5f7x540ECtgHbpKdewHGoBc4Krn4JwVbfabbDr9dQ92sH+ke3phqjBw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'" };
+                                  //data:image/png;base64,"+result_json.filtered_image};
+　                  console.log(source2);
+                    var compiled_transpImage       = _.template(''
+                      +'  <img id="transpImage"   src= <%=  transpImageData %> >'                                                                
+                      //+'  <img id="transpImage"   src="https://cdn.glitch.com/cb9381c3-613e-4f2d-9e5e-a91e1a6fee5f%2F09_result_masked_flipped.png?1532227914907">'
+                      //+'  <img id="transpImage"   src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHsAAAB9CAMAAAC1QOxQAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAKpUExURf////7+/v39/fz8/Pj4+Pv7+/r6+vn5+fb29vf39/T09PPz8/Hx8e7u7urq6ufn5+Xl5eLi4ujo6Ovr6+/v7/Dw8PLy8u3t7dbW1ri4uKSkpJqamo2NjXp6emxsbGhoaGZmZmJiYl9fX2BgYGNjY21tbX19fY6Ojpubm6mpqby8vNHR0ebm5vX19dvb27u7u5+fn3x8fF5eXlNTU0RERDo6Ojs7Oz4+PkJCQkVFRUlJSUpKSktLS09PT05OTlFRUVdXV2lpaXt7e56enrq6utXV1dPT06urq0hISDg4ODU1NTIyMjAwMDMzMzQ0ND8/P0FBQUNDQ01NTUBAQFtbW1xcXFlZWV1dXaCgoMLCwuTk5KGhoXR0dFVVVVJSUjExMS8vLywsLCoqKikpKTc3Ny0tLVBQUGVlZWRkZH9/f8jIyLa2tkdHRzY2NisrKycnJy4uLmdnZ4ODg6qqqt7e3lhYWDw8PCYmJigoKDk5OWFhYWtra2pqanl5edLS0uDg4KKiokZGRm5ubm9vb4mJiZOTk6enp9nZ2aysrJiYmK2trbe3t8DAwMnJycfHx3Nzcz09PaOjo+np6ezs7IeHh5SUlMbGxsXFxUxMTJCQkMvLy729vSQkJLKysiUlJZeXl1ZWVnZ2dqamplpaWlRUVHFxcbOzs+Hh4a6uriMjI3d3d3BwcICAgIKCgtTU1CIiIouLiyEhIb+/v4aGhnJyct/f3+Pj43h4eIGBgdzc3L6+viAgIKioqJWVlZ2dnd3d3YWFhZycnISEhLW1tc/Pz5GRkYqKinV1dczMzH5+fh8fH8rKypmZma+vr9fX187OzsTExM3NzY+Pj7S0tKWlpdDQ0IyMjNjY2LCwsMPDw5KSksHBwdra2rGxsYiIiJaWlrm5uR4eHgAAAOFVJ54AAADjdFJOU/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AzF4BsAAAAAlwSFlzAAAOwwAADsMBx2+oZAAAEUdJREFUaEO9m8thq8oSRZ0AOZABE6XhEIiCrJg4BE81IAZieWvtqkayr8+5vufzCsRPUq/eVdUfkP3y6zb1/v9n0wR0ir1j0zsHufq3rbj3ZTvOfZ7nlWXez+NY7tbA5S+Z2Pfl2Nf19vp601aWbNd13lOBvxMJyPdth/XaFrqnoGdXXHAs739avYrvEVzot7e34GMcoj1sbN/ufxRPUctcfg6rwPCzZC8+bGzf3v8QnBi+HyuAcnBsyE8FwudsKMf2I6H/XUNBkYVp0T8q0tLrjdXU3+d9P88D6b+pna9P242yQ2688DoZ5KbfaG3Lsty70f8enC/fdwsdJqE4ZU9or97WzXbeFv6v4gn0nlCOhty8nI+INzovbD7vqh7KfxGu6DVFRjIhllon1aME9qDnTbSfahf9y47nO4dFptzb+tArXVDrzsvdw1az/AH/Bfq0j0Kjp8h1Kj5nF/aC1yeiHXKPNP+NTTe2XuUNG0rl2sU18iM3dnvdl0GO+C72G8ZHF6Mbc98BfRyMatQpm+sCplNe103qU859z/jcZjldVB2yFNgXZT9Etg03cJR+/9ZRb79/0ybQocVq1ydaXK40j+tKljbe3efVK6fYWqR/g2+CMz4Ii1bticxhwm3E+5LcqgpGrejW1b2udKwX+pvStxHrW9z8qEF2lpoBo9pbC2ZbH7oJjs/5mL365fZ/o+sZYl26G+zSZ67wdixw1nAVzsGblWE48wpuWdeTbL8sifRTm+6t75nZS65TLEPVnvlatOfapR/NdETu9X76OGNd1oyvjS68He12bDTKu9gY3Box7emDjtUun9Ipt9spcgT85/BpokuppXZ9/HBDaWTNaH2eThgy0nClwbI99XxdClyB/1myT9OpxOCiNZLfXlcGlYGustk6RTPy+85BwutB4PnEmmzfHc0zjzfjfsyuPAu1tNbRGzmU+ozL2VmwGQ/byDORnE8ORVftyhm3NLTh9h/Cp5f7x540ECtgHbpKdewHGoBc4Krn4JwVbfabbDr9dQ92sH+ke3phqjBw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">' 
+                      //                                         "https://cdn.glitch.com/cb9381c3-613e-4f2d-9e5e-a91e1a6fee5f%2F09_result_masked_flipped.png?1532227914907">'
+                      +'  <a-image     id="buildings"                                                             '
+                      +'     position    ="0 0 0"                                                                 '
+                      +'     geometry    ="primitive: sphere; radius: 100"                                        '
+                      +'     material    ="color:     #cff;                                                       '
+                      +'                   shader:    flat;                                                       '
+                      //+'                   <%=  transpImageData %>;                                     '                                       
+                      //+'                   src:       <%=  transpImageData %>;                                     '
+                      +'                   src:       #transpImage;                                                '
+                      +'                   side:      back"                                                       '
+                      +'     transparent ="true"                                                                  '
+                      +'     alpha-test  ="0.5"> </a-image>                                                       '
+                      );
+                    $("#scene1").append(compiled_transpImage(source2));
+                    console.log("yeah");
+                 //},10000);
+                 });
+                 */
+    </script> 
+  </head>  
+  <body style="background-color:black;">
+    <!-- div id="btn">
+                     <img src="https://cdn.glitch.com/e91484c9-95a2-40b3-a5b6-acc2db87a4ef%2Fwhite_off.png?1532242974704"/></div-->
+
+    <!-- a-scene id="scene1" cursor="rayOrigin:mouse" fog="type: linear; color: #fff; near:1000; far:60000"--> 
+
+    <a-scene id="scene1" > 
+      <a-assets>
+                     <!-- above src will be replaced by the output of algrythima -->
+                     <img id="fixedImage"    src="https://images.mapillary.com/LZjvASCLe2KQhULv6bjBVg/thumb-2048.jpg">
+                                                  <!-- https://images.mapillary.com/MLNKOONCdJDgDEbZJDdjug/thumb-2048.jpg">
+                                                  <!-- https://cdn.glitch.com/cb9381c3-613e-4f2d-9e5e-a91e1a6fee5f%2F09_flipped.jpg?1532227908540">
+                     <!--img id="transpImage"   src="https://cdn.glitch.com/cb9381c3-613e-4f2d-9e5e-a91e1a6fee5f%2F09_result_masked_flipped.png?1532227914907"-->
+                     <!-- img id="ceiling_image" src="https://cdn.glitch.com/590b1ef6-075a-4f5c-b676-d65f95a4774d%2Ftokyo-trafic-map-circle-201907071752.png?v=1562489758114"--> 
+                     <img id="ceiling_image" src="https://image.maps.ls.hereapi.com/mia/1.6/mapview?apiKey=WQ24qH78ZHM7iFe120BQqcOYAowAhybvVPVoV3XjDlQ&t=0&h=2048&w=2048&z=15">
+                     <img id="indicator"     src="https://cdn.glitch.com/f759ed10-9d93-4b12-b6d4-28896b595f5f%2Fcircle.png?1532151517730"></a-assets>
+      <!-- below is appended when algorythmia output attained        -->
+      <!-- a-image   id="buildings"
+"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHsAAAB9CAMAAAC1QOxQAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAKpUExURf////7+/v39/fz8/Pj4+Pv7+/r6+vn5+fb29vf39/T09PPz8/Hx8e7u7urq6ufn5+Xl5eLi4ujo6Ovr6+/v7/Dw8PLy8u3t7dbW1ri4uKSkpJqamo2NjXp6emxsbGhoaGZmZmJiYl9fX2BgYGNjY21tbX19fY6Ojpubm6mpqby8vNHR0ebm5vX19dvb27u7u5+fn3x8fF5eXlNTU0RERDo6Ojs7Oz4+PkJCQkVFRUlJSUpKSktLS09PT05OTlFRUVdXV2lpaXt7e56enrq6utXV1dPT06urq0hISDg4ODU1NTIyMjAwMDMzMzQ0ND8/P0FBQUNDQ01NTUBAQFtbW1xcXFlZWV1dXaCgoMLCwuTk5KGhoXR0dFVVVVJSUjExMS8vLywsLCoqKikpKTc3Ny0tLVBQUGVlZWRkZH9/f8jIyLa2tkdHRzY2NisrKycnJy4uLmdnZ4ODg6qqqt7e3lhYWDw8PCYmJigoKDk5OWFhYWtra2pqanl5edLS0uDg4KKiokZGRm5ubm9vb4mJiZOTk6enp9nZ2aysrJiYmK2trbe3t8DAwMnJycfHx3Nzcz09PaOjo+np6ezs7IeHh5SUlMbGxsXFxUxMTJCQkMvLy729vSQkJLKysiUlJZeXl1ZWVnZ2dqamplpaWlRUVHFxcbOzs+Hh4a6uriMjI3d3d3BwcICAgIKCgtTU1CIiIouLiyEhIb+/v4aGhnJyct/f3+Pj43h4eIGBgdzc3L6+viAgIKioqJWVlZ2dnd3d3YWFhZycnISEhLW1tc/Pz5GRkYqKinV1dczMzH5+fh8fH8rKypmZma+vr9fX187OzsTExM3NzY+Pj7S0tKWlpdDQ0IyMjNjY2LCwsMPDw5KSksHBwdra2rGxsYiIiJaWlrm5uR4eHgAAAOFVJ54AAADjdFJOU/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8AzF4BsAAAAAlwSFlzAAAOwwAADsMBx2+oZAAAEUdJREFUaEO9m8thq8oSRZ0AOZABE6XhEIiCrJg4BE81IAZieWvtqkayr8+5vufzCsRPUq/eVdUfkP3y6zb1/v9n0wR0ir1j0zsHufq3rbj3ZTvOfZ7nlWXez+NY7tbA5S+Z2Pfl2Nf19vp601aWbNd13lOBvxMJyPdth/XaFrqnoGdXXHAs739avYrvEVzot7e34GMcoj1sbN/ufxRPUctcfg6rwPCzZC8+bGzf3v8QnBi+HyuAcnBsyE8FwudsKMf2I6H/XUNBkYVp0T8q0tLrjdXU3+d9P88D6b+pna9P242yQ2688DoZ5KbfaG3Lsty70f8enC/fdwsdJqE4ZU9or97WzXbeFv6v4gn0nlCOhty8nI+INzovbD7vqh7KfxGu6DVFRjIhllon1aME9qDnTbSfahf9y47nO4dFptzb+tArXVDrzsvdw1az/AH/Bfq0j0Kjp8h1Kj5nF/aC1yeiHXKPNP+NTTe2XuUNG0rl2sU18iM3dnvdl0GO+C72G8ZHF6Mbc98BfRyMatQpm+sCplNe103qU859z/jcZjldVB2yFNgXZT9Etg03cJR+/9ZRb79/0ybQocVq1ydaXK40j+tKljbe3efVK6fYWqR/g2+CMz4Ii1bticxhwm3E+5LcqgpGrejW1b2udKwX+pvStxHrW9z8qEF2lpoBo9pbC2ZbH7oJjs/5mL365fZ/o+sZYl26G+zSZ67wdixw1nAVzsGblWE48wpuWdeTbL8sifRTm+6t75nZS65TLEPVnvlatOfapR/NdETu9X76OGNd1oyvjS68He12bDTKu9gY3Box7emDjtUun9Ipt9spcgT85/BpokuppXZ9/HBDaWTNaH2eThgy0nClwbI99XxdClyB/1myT9OpxOCiNZLfXlcGlYGustk6RTPy+85BwutB4PnEmmzfHc0zjzfjfsyuPAu1tNbRGzmU+ozL2VmwGQ/byDORnE8ORVftyhm3NLTh9h/Cp5f7x540ECtgHbpKdewHGoBc4Krn4JwVbfabbDr9dQ92sH+ke3phqjBw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" 
+
+                     position    ="0 0 0"                              
+                     geometry    ="primitive: sphere; radius: 100"   
+                     material    ="color:     #cff;                  
+                                   shader:    flat;                  
+                                   src:       #transpImage;          
+                                   side:      back"                  
+                     transparent ="true"                             
+                     alpha-test  ="0.5"> </a-image-->                 
+      
+      <a-entity  id="buildings_with_sky"  
+                     position    ="0 0 0" 
+                     geometry    ="primitive: sphere; radius: 12000" 
+                     material    ="color:     #f00;
+                                   shader:    flat; 
+                                   src:       #fixedImage;
+                                   side:      back"> </a-entity>
+      
+
+      <!-- a-image id="ceiling" 
+                   position = "+2000 2000 500" width="9060*2" height="9060*2" src="#ceiling_image" 
+                   opacity  ="0.3" rotation="-90 0 -25" color= "#0ff" side="double"></a-image-->
+      <a-image id="ceiling" 
+                   position = "7200 2000 -1000" width="35254" height="31023" src="#ceiling_image" 
+                   opacity  ="0.3" rotation="-90 0 0" color= "#0ff" side="double"></a-image>
+    </a-scene>
+
+<script>
+       function toHex(v) {
+         return (('00' + v.toString(16)).substr(-2));
+       }
+       function crowdedness_into_zero_to_one(crowdedness){
+         return (Math.max(0,(
+                             (crowdedness   // it follows pixel format 0xff112233
+                              - 0xff000000)))) // Remove first "ff". That's alpha value
+                              / 0xffffff; // calc as 0 to 1 value        
+       }
+      
+       var farest         = 1000;
+       var ceiling_height = 1000;
+       var compiled       = _.template(''
+/* showing the indicator
+       + '<% var x = (results.destination.lng - 0.5)*-1000;                      %>'
+       + '<% var y = 300;                                                        %>'
+       + '<% var z = (results.destination.lat - 0.5)*-1000;                      %>'
+       + '   <a-sound audiohandler id="destinationIndicator"                       '
+       + '     volume="500" autoplay="false" geometry="primitive: plane"           '
+       + '     position="<%= x %> <%= y %> <%= z %>"                               '
+       + '     rotation="90 0 0" material="color: #0ff; src: #indicator"           '
+       + '     transparent="true" alpha-test="0.5">                                '
+       + '   <a-animation attribute="geometry.height" from="2000" to="100" dur="4000" repeat="indefinite" easing="ease-out"></a-animation>          '
+       + '   <a-animation attribute="geometry.width"  from="2000" to="100" dur="4000" repeat="indefinite" easing="ease-out"></a-animation></a-sound>'
+*/
+                                       
+// showing the posts
+       + '<% _.each(results.message, function(item) {                              %>'
+       + '<%   var s       = Math.floor(item.sentiment*0.99*15);                  %>'
+         // red   16 to 0 when   sentiment 0.0 to 0.5 
+         //       0       after  sentiment 0.5 
+       + '<%   var reda    = Math.floor(15 - s*4); if(reda < 0) { reda = 0; }     %>'
+       + '<%   var redb    = Math.floor(s*2 - 15); if(redb < 0) { redb = 0; }     %>'
+       + '<%   var red     = Math.max(reda,redb);                                 %>'
+       + '<%   var red16   = red.toString(16);                                    %>'
+         // green 0 to 16 when   sentiment 0.0 to 0.5
+         //       16      after  sentiment 0.5
+       + '<%   var green   = Math.floor(s*2);      if(green > 15) { green = 15; } %>'
+       + '<%   var green16 = green.toString(16);                                  %>'
+         // blue  0       before sentiment 0.5
+         //       0 to 16 when   sentiment 0.5 to 1.0
+       + '<%   var blue    = Math.floor(s);  if(blue < 0)   { blue = 0; }         %>'
+       + '<%   var blue16  = blue.toString(16);                                   %>'
+    // + '<%   console.log(red16);console.log(green16);console.log(blue16);       %>'
+       + '<%   console.log(s+":"+red16+green16+blue16);                           %>' 
+       + '     <a-entity class="clickable" geometry="primitive:box; width:5; depth:5; height: 10"     '
+    // + '       material="color: #<%= red16 %><%= green16 %><%= blue16 %>;                           '
+       + '       material="color: #cff;                                                               '
+       + '                 opacity:0.6;                                                               '             
+       + '                 shader:flat"                                                               '
+       + '       position="<%= (item.lat - 0.5)*1*farest   %>                                         ' 
+                                       //       ^ usually 2, but for presentation we gather posts in center. 
+//       + '           <%= ceiling_height*0.5*(item.time)+400 %>' 
+       + '                 <%= (item.time)*100+400         %>                                         ' 
+       + '                 <%= (item.lng - 0.5)*1*farest   %>" >                                      '
+    + '       <a-animation attribute="material.opacity" from="0.5" to="0.1" dur="1000" direction="alternate" repeat="indefinite"'
+    + '         delay="<%= ceiling_height*0.8*(item.time) + 20 %> "> </a-animation>'
+       + '       <a-animation attribute="position"                                                    '
+       + '         to=    "<%= (item.lat -0.5)*2*farest    %>                                         '
+//     + '                 <%= ceiling_height*0.2*(item.time) + 450 %>                                '
+       + '                 <%= (item.time)*300+200         %>                                         ' 
+       + '                 <%= (item.lng -0.5)*2*farest    %>"                                        ' 
+       + '         dur=   "<%= 1000*(item.time)+1000       %>"                                        '
+       + '         direction="alternate" repeat="indefinite"> </a-animation>                          '
+       + '       <a-animation attribute="geometry.height" from="0" to="<%= (1 - item.time)*300 %>"    ' 
+       + '         dur="100"  direction="alternate" repeat="indefinite"> </a-animation>               '
+       + '      </a-entity>                                                                           '
+       + '<% });                                                                                    %>'
+      
+ // showing crowdedness cloud
+       + '<% var one_km_longitude = 0.010966404715491394;   %>' // Do you notice this is Tokyo specific value? var is ok, maybe.
+       + '<% var one_km_latitude  = 0.0090133729745762;     %>' // source: https://easyramble.com/latitude-and-longitude-per-kilometer.html
+    
+       + '<% for(var x = 0; x < 50; x++){    %>'// x here is ok? // grammar ok, maybe.
+       + '<%   for(var y=0; y<50; y++){      %>'     
+       + '<%     var lng_x = 139.679410 + x * one_km_longitude * (9.06/50); %>' 
+       //                    ^^^^^^^^^^
+       //        longitude of C0. Should I convert to the center of bin? ...later 
+       //                                                        ^^^^^^^^^
+       //                                          Distance between each Cn in km                            
+       //                                                         ^^^^
+       //                                       Distance between C0 and C50 in km                            
+       //                                                              ^^
+       //                                                     number of axis bins
+       //                              
+       + '<%     var lat_y = 35.726635 - y * one_km_latitude * ( 9.06 / 50 ); %>' 
+       //                    ^^^^^^^^^                                                              
+       //                    latitude of C0
+       //                              ^
+       //                    if y increse, latitude decrease
+       //                              
+       + '<%     var position_of_Index_x = ((lng_x - 139.702889) / one_km_longitude) * 1000 ; %>'
+       //                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+       //                                  in km
+       //                                            ^^^^^^^^^^
+       //                                  human longitude, say Harajuku
+       //                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+       //                                  in meter
+       + '<%     var position_of_Index_y = ( - (lat_y - 35.671599) / one_km_latitude) * 1000 ;                               %>'         
+       + '<%     var distance_from_human = Math.sqrt( Math.pow(position_of_Index_x, 2) + Math.pow(position_of_Index_y, 2));  %>'
+       + '<%     var opacity             = Math.min(0.8,crowdedness_into_zero_to_one(crowdedness[y*50+x])*8);                %>'
+       //+ '<%     if (distance_from_human < 10000　||　opacity > 0) {                       %>' // within 10km
+       + '<%     if (opacity > 0) {                       %>' 
+       + '<%       console.log(position_of_Index_x +" "+ position_of_Index_y +" "+ opacity); %>'
+       + '         <a-box                                         ' // tower of crowdedness
+       + '            color    = "#888"                                  '
+       + '            opacity  = "<%= opacity*0.6 %>"'   
+       //+ '            opacity  = "0.5"     '
+       //+ '            position = "<%= position_of_Index_x +500 %> 1000 <%= (position_of_Index_y +500)*1.2 %>"    '
+       + '            position = "<%= position_of_Index_x %> 1000 <%= (position_of_Index_y) %>"    '
+       //+ '            rotation = "0 <%= angle_against_human(position_of_Index_x,position_of_Index_y) => 0"> ' // need define
+       + '            width    = "180"                                    '
+       + '            depth    = "180"                                    '                            
+       + '            height   = "300">'
+       + '            <a-animation attribute="geometry.height" from="50" to="300"    ' 
+       + '                         dur="5000"  direction="alternate" repeat="indefinite"> </a-animation> '
+       + '         </a-box>                       ' // wow, so big tower!
+       + '<%     }                                                   %>'
+       
+       + '<%     }}                                                  %>'
+       // showing the message 
+                                       
+       + '<% var appear_duration=700;                                                                                                %>'
+       + '<% var remain_duration=1600;                                                                                               %>'
+       + '      <a-entity camera look-controls>                                                                                        '
+       + '<%      var i=0;                                                                                                           %>'
+       + '<%      _.each(results.message, function(item) {                                                                           %>'
+       + '<%          start_delay = i*(appear_duration *2 + remain_duration);                                                        %>' 
+       + '<%       console.log(i, start_delay);                                                                                      %>'
+       + '            <a-entity  text="value: <%= item.text %> ;                                                                       '
+       + '                             align: center; width: 2; color: white; opacity:0.0" position="0 -1 -2"                          '  
+       + '               animation   ="property: components.text.material.uniforms.opacity.value;                                      '
+       + '                             delay: <%= start_delay                     %>; from: 0.0; to: 1.0; dur:<%= appear_duration %> " '
+       + '               animation__2="property: components.text.material.uniforms.opacity.value;                                      '
+       + '                             delay:<%= start_delay    + remain_duration %>; from: 1.0; to: 0.0; dur:<%= appear_duration %> " '
+       + '               animation__3="property: position; to: 0 0 100;                                                                '    
+       + '                             delay:<%= start_delay + remain_duration + appear_duration %>; dur:1"> </a-entity>               '                                                                                             
+       + '            <a-entity  text="value: <%= item.text %> ;                                                                       '
+       + '                             align: center; width: 2; color: black; opacity:0.0" position="0.0105 -1.01 -2.01"                      '
+       + '               animation   ="property: components.text.material.uniforms.opacity.value;                                      ' 
+       + '                             delay: <%= start_delay                     %>; from: 0.0; to: 1.0; dur:<%= appear_duration %> " '
+       + '               animation__2="property: components.text.material.uniforms.opacity.value;                                      '
+       + '                             delay:<%= start_delay    + remain_duration %>; from: 1.0; to: 0.0; dur:<%= appear_duration %> " '
+       + '               animation__3="property: position; to: 0 0 100;                                                                '    
+       + '                             delay:<%= start_delay + remain_duration + appear_duration %>; dur:1"> </a-entity>               '
+       + '<%          i++;                                                                                                           %>' 
+       + '<%      });                                                                                                                %>'        
+        + '    </a-entity>                                                                                                             '
+       
+       );
+       var source = {
+          "crowdedness": [
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0f1a28, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0d0d0d, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff091b33, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0b0e14, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff071734, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff00ffff, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff091731, 0xff0b0e13, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff071a3e, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0a101a, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0b1016, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff09152b, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff09162d, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0a111d, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff162b30, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0c0f16, 0xff0a1528, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff193b6b, 0xff12244f, 0xff0d0d25, 0xff10101a, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0a101c, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff080854, 0xff09093c, 0xff0b0b21, 0xff0b0b33, 0xff000000, 0xff000000, 0xff000000, 0xff091427, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0b0b1f, 0xff0a0a34, 0xff000000, 0xff0d0e0f, 0xff071734, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0c0c24, 0xff07077b, 0xff0b142a, 0xff042255, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0a0a39, 0xff0a0f2b, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff122530, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff060e61, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff13344a, 0xff0d233b, 0xff0d1015, 0xff0b121e, 0xff0b162a, 0xff091a38, 0xff0a1831, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff09113c, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff062357, 0xff081a3a, 0xff0f365e, 0xff0b356c, 0xff0a1427, 0xff000000, 0xff000000, 0xff071b3e, 0xff081a3b, 0xff061e49, 0xff081c41, 0xff091830, 0xff000000, 0xff000000, 0xff0a1232, 0xff070e6a, 0xff07094c, 0xff102547, 0xff163770, 0xff0c127c, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff09102a, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff071e49, 0xff0a1831, 0xff000000, 0xff0e1013, 0xff0b1628, 0xff000000, 0xff000000, 0xff081c3e, 0xff0c0e3a, 0xff090959, 0xff0f0f13, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0b1635, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff111111, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff071e48, 0xff0a162a, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0d0d0d, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff18416f, 0xff0a1a41, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff091935, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0e0e0e, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff142f57, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0a1324, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff080950, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0d1723, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0e0e0d, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff03186b, 0xff0a0b29, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff262740, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0e0e0d, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff07164c, 0xff091037, 0xff000000, 0xff000000, 0xff000000, 0xff2a2b35, 0xff3c3c3c, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff363149, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0d0d0d, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff09093a, 0xff09093a, 0xff101e77, 0xff101e77, 0xff101e77, 0xff101e77, 0xff101e77, 0xff09093a, 0xff171c54, 0xff16165f, 0xff09093a, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff101829, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0d0d0d, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff111632, 0xff1d1e45, 0xff09093a, 0xff09093a, 0xff09093a, 0xff09093a, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff111111, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0c0d0c, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff262a5c, 0xff09093a, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0c0c0c, 0xff0a1322, 0xff0c121d, 0xff0a1323, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0b0f16, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0a1225, 0xff13182b, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff091220, 0xff091528, 0xff000000, 0xff051e4c, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0d1723, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0f0f0f, 0xff0b1629, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff061b43, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff09093a, 0xff000000, 0xff000000, 0xff000000, 0xff0a1324, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff111111, 0xff000000, 0xff0d1723, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0b182d, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff061b43, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff414253, 0xff09093a, 0xff09093a, 0xff09093a, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff091426, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0f1216, 0xff0f1c32, 0xff0f1623, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0d1723, 0xff0d1723, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff153340, 0xff061b43, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0a0a3d, 0xff101e77, 0xff0c1250, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff061d48, 0xff0a1324, 0xff0b0f17, 0xff0a1324, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff102448, 0xff141a24, 0xff0b1424, 0xff0e0f12, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0a101b, 0xff0a1323, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff061b43, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0a0a37, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0b1424, 0xff0c121b, 0xff091529, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0b111c, 0xff0a111e, 0xff080d14, 0xff000000, 0xff000000, 0xff070f1f, 0xff09101d, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff061b43, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff09093e, 0xff0c0c27, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff081227, 0xff0b111e, 0xff091425, 0xff060d19, 0xff000000, 0xff000000, 0xff0c0c0c, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff111111, 0xff000000, 0xff09162d, 0xff000000, 0xff000000, 0xff000000, 0xff112348, 0xff0a0c4c, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0d1723, 0xff0d1723, 0xff091324, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff09162d, 0xff000000, 0xff000000, 0xff0b0b23, 0xff09093a, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff091526, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff09162d, 0xff000000, 0xff0a0a3b, 0xff0a0a30, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0a0d13, 0xff070f1f, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff09162d, 0xff0b0c35, 0xff0c0c1c, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0c0d0c, 0xff0b1220, 0xff0d1723, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0d121d, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff090b0d, 0xff091326, 0xff0d1723, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0c0e11, 0xff0a1324, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff09111d, 0xff09162e, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff09162d, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0b0b0c, 0xff0c0d10, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0c0c0c, 0xff0a1324, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0d0d0e, 0xff091936, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0b1424, 0xff081938, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff091932, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0b101a, 0xff09162d, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0a121f, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff111111, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff0a1220, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000
+/*
+
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xfff9f9fd, 0xff000000, 0xffffffff, 0xff000000, 0xffffffff, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xfff9f9fd, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff111111,            0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xfff9f9fd, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff111111, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xfff9f9fd, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 
+0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000
+*/
+],
+  "results": {
+    "destination": {
+      "lat": 0.3520836438148635,
+      "lng": 0.520176382510616
+    },
+    "disaster": false,
+    "message": [
+      {
+        "lat": 0.26202006202072725,
+        "lng": 0.04676385710706487,
+        "photo_url": "",
+        "sentiment": 0.7000000029802322,
+        "text": "Hope people enjoy Tokyo Olympics!",
+        "time": 0.0004513888888888889
+      },
+      {
+        "lat": 0.6460222896191963,
+        "lng": 0.5433055578578689,
+        "photo_url": "",
+        "sentiment": 0.75,
+        "text": "Smile should be filled with in 2020!",
+        "time": 0.0008333333333333334
+      },
+      {
+        "lat": 0.5211826335260304,
+        "lng": 0.5087623757273868,
+        "photo_url": "",
+        "sentiment": 0.7000000029802322,
+        "text": "We'll glad if visitors love Tokyo!",
+        "time": 0.0010763888888888889
+      },
+      {
+        "lat": 0.4723458217434785,
+        "lng": 0.7060242301395488,
+        "photo_url": "",
+        "sentiment": 0.5500000007450581,
+        "text": "Any people enjoy 2020 and any time!",
+        "time": 0.0011921296296296296
+      },
+      {
+        "lat": 0.3126587875893185,
+        "lng": 0.8770522542907913,
+        "photo_url": "",
+        "sentiment": 0.800000011920929,
+        "text": "Enjoy 2020!",
+        "time": 0.001412037037037037
+      },
+      {
+        "lat": 0.8261591827326108,
+        "lng": 0.3642491198624891,
+        "photo_url": "",
+        "sentiment": 0.75,
+        "text": "Beautiful Olympics, we must make!",
+        "time": 0.0030787037037037037
+      },
+      {
+        "lat": 0.3804282035567508,
+        "lng": 0.60416025729182,
+        "photo_url": "",
+        "sentiment": 0.7000000029802322,
+        "text": "Fill the happiness in 2020!",
+        "time": 0.0032291666666666666
+      },
+      {
+        "lat": 0.41370384132994237,
+        "lng": 0.6870717534420473,
+        "photo_url": "",
+        "sentiment": 0.6500000059604645,
+        "text": "We change 2020, and 2020 changes us!",
+        "time": 0.004618055555555556
+      },
+      {
+        "lat": 0.023455794702180233,
+        "lng": 0.30395042478607304,
+        "photo_url": "",
+        "sentiment": 0.7000000029802322,
+        "text": "Hope people enjoy Tokyo Olympics!",
+        "time": 0.006944444444444444
+      },
+      {
+        "lat": 0.18020339097062849,
+        "lng": 0.3065050638124055,
+        "photo_url": "",
+        "sentiment": 0.5,
+        "text": "Smile should be filled with in 2020!",
+        "time": 0.0072106481481481475
+      },
+      {
+        "lat": 0.25304774339008834,
+        "lng": 0.31996027891370715,
+        "photo_url": "",
+        "sentiment": 0.800000011920929,
+        "text": "We'll glad if visitors love Tokyo!",
+        "time": 0.007685185185185185
+      },
+      {
+        "lat": 0.3983422622138317,
+        "lng": 0.7064194403853135,
+        "photo_url": "http://pbs.twimg.com/media/DirVMzZXUAcUHgH.jpg",
+        "sentiment": 0.7000000029802322,
+        "text": "Any people enjoy 2020 and any time!",
+        "time": 0.008101851851851851
+      },
+      {
+        "lat": 0.4626941021109237,
+        "lng": 0.63866233755626,
+        "photo_url": "http://pbs.twimg.com/media/DirVDfqW0AA8_DA.jpg",
+        "sentiment": 0.75,
+        "text": "Enjoy 2020!",
+        "time": 0.008564814814814815
+      },
+      {
+        "lat": 0.36898235378287575,
+        "lng": 0.6452151492598917,
+        "photo_url": "",
+        "sentiment": 0.9000000059604645,
+        "text": "Beautiful Olympics, we must make!",
+        "time": 0.009930555555555555
+      },
+      {
+        "lat": 0.24718721478110406,
+        "lng": 0.9393491323680783,
+        "photo_url": "",
+        "sentiment": 0.5,
+        "text": "Hope people enjoy Tokyo Olympics!",
+        "time": 0.010532407407407407
+      },
+      {
+        "lat": 0.05462540056428953,
+        "lng": 0.5702616066121987,
+        "photo_url": "",
+        "sentiment": 0.5,
+        "text": "Smile should be filled with in 2020!",
+        "time": 0.012685185185185183
+      },
+      {
+        "lat": 0.004780606772053295,
+        "lng": 0.42275107624663644,
+        "photo_url": "",
+        "sentiment": 0.800000011920929,
+        "text": "We'll glad if visitors love Tokyo!",
+        "time": 0.014039351851851851
+      },
+      {
+        "lat": 0.8561573500427753,
+        "lng": 0.3599374890022993,
+        "photo_url": "",
+        "sentiment": 0.5,
+        "text": "Any people enjoy 2020 and any time!",
+        "time": 0.016180555555555556
+      },
+      {
+        "lat": 0.017525769264218567,
+        "lng": 0.36877258341541513,
+        "photo_url": "",
+        "sentiment": 0.7000000029802322,
+        "text": "Smile should be filled with in 2020!",
+        "time": 0.016620370370370372
+      }
+    ]
+  },
+  "status": 1
+};
+        $("#scene1").append(compiled(source));
+        // console.log(compiled(source));
+      
+      </script>
+     </a-scene>
+  </body>
+</html>
+
+
+
+
+
+
+
+
+
+
